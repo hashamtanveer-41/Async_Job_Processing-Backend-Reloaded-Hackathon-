@@ -75,6 +75,7 @@ export const handler: Handlers['StartAIJob'] = async (req, { emit, state, logger
         jobId,
         status: JobStatus.PENDING,
         message: 'Job started successfully.',
+        remaining_credits: limitCheck.remaining 
       },
     };
 
