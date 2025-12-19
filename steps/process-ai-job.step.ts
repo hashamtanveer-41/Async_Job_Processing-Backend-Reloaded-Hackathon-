@@ -22,22 +22,34 @@ export const handler = async (event: any, { state, logger }: any) => {
   // 🔄 THE RETRY LOOP
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const jobState = (await state.get('ai-jobs', jobId)) as JobState;
-      if (!jobState) return;
+      // 🛑 SIGNAL CHECK 1: Start of loop
+      let current = (await state.get('ai-jobs', jobId)) as any;
+      if (current.status === 'cancelled') {
+          logger.warn('Job was cancelled by user. Stopping worker.', { jobId });
+          return; // <--- STOP EVERYTHING
+      }
+      
 
       const startTime = Date.now();
 
       // Update State: Processing (Show attempt number!)
       await state.set('ai-jobs', jobId, {
-        ...jobState,
-        status: JobStatus.PROCESSING,
+        ...current,
+        status: 'processing',
         progress: { 
             percent: 10 * attempt, 
-            message: `Attempt ${attempt}/${MAX_RETRIES}: Analyzing...` 
+            message: `Attempt ${attempt}: Analyzing...` 
         },
         updatedAt: new Date().toISOString(),
       });
-
+      await new Promise((resolve) => setTimeout(resolve, 20000));
+// 🛑 SIGNAL CHECK 2: Mid-work check
+      // (This makes the cancellation feel "instant")
+      current = (await state.get('ai-jobs', jobId));
+      if (current.status === 'cancelled') {
+          logger.warn('Job cancelled mid-execution.', { jobId });
+          return; // <--- STOP EVERYTHING
+      }
       // 💥 CHAOS MODE (Simulate Risk)
       // 50% chance to fail on the first attempt
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -51,8 +63,8 @@ export const handler = async (event: any, { state, logger }: any) => {
 
       // Update State: Halfway
       await state.set('ai-jobs', jobId, {
-        ...jobState,
-        status: JobStatus.PROCESSING,
+        ...current,
+        status: 'Processing.... Just half left',
         progress: { percent: 50, message: 'Generating output...' },
         updatedAt: new Date().toISOString(),
       });
@@ -62,8 +74,8 @@ export const handler = async (event: any, { state, logger }: any) => {
       // SUCCESS!
       const duration = Date.now() - startTime;
       await state.set('ai-jobs', jobId, {
-        ...jobState,
-        status: JobStatus.COMPLETED,
+        ...current,
+        status: 'Completed ',
         progress: { percent: 100, message: 'Done' },
         result: `Processed: "${prompt}" (Succeeded on attempt ${attempt})`,
         updatedAt: new Date().toISOString(),
