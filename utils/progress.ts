@@ -1,4 +1,3 @@
-// Complete utility for tracking job progress
 export interface JobProgress {
   currentStep: string;
   percentComplete: number;

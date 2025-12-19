@@ -1,7 +1,3 @@
-// ===================================
-// FILE: src/steps/start-ai-job.step.ts
-// ===================================
-
 import { ApiRouteConfig, Handlers } from 'motia';
 import { z } from 'zod';
 import { JobStatus, JobState } from '../utils/errors';
@@ -27,8 +23,6 @@ export const config: ApiRouteConfig = {
 
 export const handler: Handlers['StartAIJob'] = async (req, { emit, state, logger }) => {
   try {
-    // 🛡️ RATE LIMIT CHECK (The Bouncer)
-    // In a real app, use req.headers['user-id']. For now, we simulate a user.
     const userId = "demo-user"; 
     
     const limitCheck = await RateLimiter.check(userId, state);
@@ -36,7 +30,7 @@ export const handler: Handlers['StartAIJob'] = async (req, { emit, state, logger
     if (!limitCheck.allowed) {
         logger.warn('Rate limit exceeded', { userId });
         return {
-            status: 429, // "Too Many Requests"
+            status: 429,
             body: { 
                 error: 'Rate Limit Exceeded', 
                 message: 'You can only start 2 jobs per minute. Please wait.' 
@@ -56,10 +50,7 @@ export const handler: Handlers['StartAIJob'] = async (req, { emit, state, logger
       createdAt: timestamp,
       updatedAt: timestamp,
     };
-
     await state.set('ai-jobs', jobId, initialJobState);
-
-    // FIX: Cast emit to 'any' to bypass the error until types regenerate
     await (emit as any)({
       topic: 'ai.job.created',
       data: {
@@ -68,7 +59,6 @@ export const handler: Handlers['StartAIJob'] = async (req, { emit, state, logger
         options
       },
     });
-
     return {
       status: 201,
       body: {

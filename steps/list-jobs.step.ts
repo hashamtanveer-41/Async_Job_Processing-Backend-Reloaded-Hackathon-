@@ -1,7 +1,3 @@
-// ===================================
-// FILE: src/steps/list-jobs.step.ts
-// ===================================
-
 import { ApiRouteConfig, Handlers } from 'motia';
 import { JobState } from '../utils/errors';
 
@@ -10,7 +6,7 @@ export const config: ApiRouteConfig = {
   type: 'api',
   path: '/ai/jobs',
   method: 'GET',
-  emits: [], // Vital: Fixes the "missing property" error
+  emits: [], 
   flows: ['ai-jobs'],
 };
 
@@ -18,8 +14,7 @@ export const handler: Handlers['ListJobs'] = async (req, { state, logger }) => {
   try {
     logger.info('Fetching all jobs...');
 
-    // 1. Get All Jobs
-    // "getGroup" retrieves all keys starting with 'ai-jobs'
+    //Get All Jobs
     const jobsMap = await state.getGroup('ai-jobs');
 
     if (!jobsMap) {
@@ -29,9 +24,7 @@ export const handler: Handlers['ListJobs'] = async (req, { state, logger }) => {
         };
     }
 
-    // 2. Convert & Sort
-    // The state comes back as an object { "job-1": {...}, "job-2": {...} }
-    // We convert it to an array so the frontend can list it easily
+    //Convert & Sort
     const jobList = Object.values(jobsMap)
       .map((job) => job as JobState) // Safe cast
       .sort((a, b) => 
@@ -39,7 +32,7 @@ export const handler: Handlers['ListJobs'] = async (req, { state, logger }) => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-    // 3. Return List
+    //Return List
     return {
       status: 200,
       body: {

@@ -1,7 +1,3 @@
-// ===================================
-// FILE: src/steps/process-ai-job.step.ts
-// ===================================
-
 import { EventConfig } from 'motia';
 import { JobStatus, JobState } from '../utils/errors';
 
@@ -19,20 +15,20 @@ export const handler = async (event: any, { state, logger }: any) => {
 
   logger.info('Processing AI Job', { jobId });
 
-  // 🔄 THE RETRY LOOP
+  //THE RETRY LOOP
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // 🛑 SIGNAL CHECK 1: Start of loop
+      //SIGNAL CHECK 1: Start of loop
       let current = (await state.get('ai-jobs', jobId)) as any;
       if (current.status === 'cancelled') {
           logger.warn('Job was cancelled by user. Stopping worker.', { jobId });
-          return; // <--- STOP EVERYTHING
+          return;
       }
       
 
       const startTime = Date.now();
 
-      // Update State: Processing (Show attempt number!)
+      // Update State
       await state.set('ai-jobs', jobId, {
         ...current,
         status: 'processing',
@@ -43,25 +39,21 @@ export const handler = async (event: any, { state, logger }: any) => {
         updatedAt: new Date().toISOString(),
       });
       await new Promise((resolve) => setTimeout(resolve, 20000));
-// 🛑 SIGNAL CHECK 2: Mid-work check
-      // (This makes the cancellation feel "instant")
+      //SIGNAL CHECK 2
       current = (await state.get('ai-jobs', jobId));
       if (current.status === 'cancelled') {
           logger.warn('Job cancelled mid-execution.', { jobId });
-          return; // <--- STOP EVERYTHING
+          return; 
       }
-      // 💥 CHAOS MODE (Simulate Risk)
-      // 50% chance to fail on the first attempt
+      // CHAOS MODE (Simulate Risk)
       await new Promise((resolve) => setTimeout(resolve, 2000));
       
       if (attempt === 1 && Math.random() < 0.5) {
           throw new Error('AI Service Busy (Simulated Failure)');
       }
 
-      // If we survive the chaos, simulate work
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Update State: Halfway
       await state.set('ai-jobs', jobId, {
         ...current,
         status: 'Processing.... Just half left',
@@ -71,7 +63,7 @@ export const handler = async (event: any, { state, logger }: any) => {
       
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // SUCCESS!
+
       const duration = Date.now() - startTime;
       await state.set('ai-jobs', jobId, {
         ...current,
@@ -82,12 +74,11 @@ export const handler = async (event: any, { state, logger }: any) => {
       });
       
       logger.info('Job Succeeded', { jobId, attempt });
-      return; // Exit the loop on success
-
+      return; 
     } catch (error: any) {
       logger.warn(`Attempt ${attempt} failed`, { jobId, error: error.message });
 
-      // If this was the last attempt, give up
+    
       if (attempt === MAX_RETRIES) {
         const currentState = (await state.get('ai-jobs', jobId)) as JobState;
         await state.set('ai-jobs', jobId, {
@@ -98,7 +89,6 @@ export const handler = async (event: any, { state, logger }: any) => {
         });
         logger.error('Job Permanently Failed', { jobId });
       } else {
-        // Wait before retrying (Backoff)
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }

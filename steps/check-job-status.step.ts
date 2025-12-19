@@ -1,7 +1,3 @@
-// ===================================
-// FILE: src/steps/check-job-status.step.ts
-// ===================================
-
 import { ApiRouteConfig, Handlers } from 'motia';
 import { JobState } from '../utils/errors';
 
@@ -10,15 +6,15 @@ export const config: ApiRouteConfig = {
   type: 'api',
   path: '/ai/status/:jobId',
   method: 'GET',
-  emits: [], // Vital: Even API steps need this if they don't emit anything
+  emits: [], 
   flows: ['ai-jobs'],
 };
 
 export const handler: Handlers['CheckJobStatus'] = async (req, { state, logger }) => {
-  const { jobId } = req.pathParams; // Motia automatically parses :jobId
+  const { jobId } = req.pathParams; 
 
   try {
-    // 1. Validate Input (Basic check)
+    //Validate Input (Basic check)
     if (!jobId || jobId.length < 5) {
         return {
             status: 400,
@@ -27,10 +23,9 @@ export const handler: Handlers['CheckJobStatus'] = async (req, { state, logger }
     }
 
     // 2. Fetch from State
-    // We cast to JobState | null to be safe
     const job = (await state.get('ai-jobs', jobId)) as JobState | null;
 
-    // 3. Handle "Not Found"
+    //Handle "Not Found"
     if (!job) {
       logger.warn('Job lookup failed - ID not found', { jobId });
       return {
@@ -42,7 +37,7 @@ export const handler: Handlers['CheckJobStatus'] = async (req, { state, logger }
       };
     }
 
-    // 4. Return Success (The Job Status)
+    //Return Success (The Job Status)
     logger.info('Job status retrieved', { jobId, status: job.status });
 
     return {
@@ -51,8 +46,8 @@ export const handler: Handlers['CheckJobStatus'] = async (req, { state, logger }
         jobId: job.jobId,
         status: job.status,
         progress: job.progress || null, 
-        result: job.result || null, // Only exists if completed
-        error: job.error || null,   // Only exists if failed
+        result: job.result || null, 
+        error: job.error || null,  
         createdAt: job.createdAt,
         updatedAt: job.updatedAt,
       },
